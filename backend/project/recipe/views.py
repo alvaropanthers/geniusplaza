@@ -7,6 +7,84 @@ from rest_framework.response import Response
 from .models import User, Recipe, Ingredient, Step
 from .serializers import RecipeSerializer, IngredientSerializer, StepSerializer
 
+class StepView(APIView):
+    def post(self, request, recipeId):
+        text = request.POST.get('text', None)
+
+        if text:
+            try:
+                recipe = Recipe.objects.get(pk=recipeId)
+
+                nStep = Step(step_text=text, recipe=recipe)
+                nStep.save()
+
+                serializer = StepSerializer(nStep)
+                data = serializer.data
+                re_status = status.HTTP_201_CREATED
+
+            except Recipe.DoesNotExist:
+                data = {'error': 'Recipe does not exist'}
+                re_status=status.HTTP_404_NOT_FOUND
+        else:
+            data = {'error': 'incorrect text'}
+            re_status = status.HTTP_400_BAD_REQUEST
+
+        return Response(data, status=re_status)
+
+    def put(self, request, recipeId, id):
+        text = request.data['text'] if 'text' in request.data else None
+
+        if text:
+            try:
+                recipe = Recipe.objects.get(pk=recipeId)
+                step = Step.objects.get(pk=id, recipe=recipe)
+
+                step.step_text = text
+                step.save()
+
+                serializer = StepSerializer(step)
+                data = serializer.data
+                re_status = status.HTTP_200_OK
+            except (Recipe.DoesNotExist, Step.DoesNotExist):
+                data = {'error': 'Resource does not exist'}
+                re_status = status.HTTP_404_NOT_FOUND
+        else:
+            data = {'error': 'incorrect text'}
+            re_status = status.HTTP_400_BAD_REQUEST
+
+        return Response(data, re_status)
+    
+    def get(self, request, recipeId, id=None):
+        if id:
+            try:
+                step = Step.objects.get(pk=id, recipe_id=recipeId)
+                serializer = StepSerializer(step)
+                data = serializer.data
+                re_status = status.HTTP_200_OK
+            except Ingredient.DoesNotExist:
+                data = {'error': 'Resource does not exist'}
+                re_status = status.HTTP_404_NOT_FOUND
+        else:
+            step = Step.objects.filter(recipe_id=recipeId)
+            serializer = StepSerializer(step, many=True)
+            data = serializer.data
+            re_status = status.HTTP_200_OK
+        
+        return Response(data, status=re_status)
+
+    def delete(self, request, recipeId, id):
+        try:
+            step = Step.objects.get(pk=id, recipe_id=recipeId)
+            step.delete()
+            data = ''
+            re_status = status.HTTP_200_OK
+        except Step.DoesNotExist:
+            data = {'error': 'Resource does not exist'}
+            re_status = status.HTTP_404_NOT_FOUND  
+
+        return Response(data, re_status)
+
+
 class IngredientView(APIView):
     def post(self, request, recipeId):
         text = request.POST.get('text', None)
@@ -22,14 +100,15 @@ class IngredientView(APIView):
                 data = serializer.data
                 re_status = status.HTTP_201_CREATED
 
-            except User.DoesNotExist:
-                data = {'error': 'user does not exist'}
+            except Recipe.DoesNotExist:
+                data = {'error': 'Recipe does not exist'}
                 re_status=status.HTTP_404_NOT_FOUND
         else:
             data = {'error': 'incorrect text'}
             re_status = status.HTTP_400_BAD_REQUEST
 
         return Response(data, status=re_status)
+        
 
     def put(self, request, recipeId, id):
         text = request.data['text'] if 'text' in request.data else None
@@ -59,12 +138,11 @@ class IngredientView(APIView):
     def get(self, request, recipeId, id=None):
         if id:
             try:
-                recipe = Recipe.objects.get(pk=recipeId)
-                ingredient = Ingredient.objects.get(pk=id, recipe=recipe)
+                ingredient = Ingredient.objects.get(pk=id, recipe_id=recipeId)
                 serializer = IngredientSerializer(ingredient)
                 data = serializer.data
                 re_status = status.HTTP_200_OK
-            except (Recipe.DoesNotExist, Ingredient.DoesNotExist):
+            except Ingredient.DoesNotExist:
                 data = {'error': 'Resource does not exist'}
                 re_status = status.HTTP_404_NOT_FOUND
         else:
@@ -77,12 +155,11 @@ class IngredientView(APIView):
 
     def delete(self, request, recipeId, id):
         try:
-            recipe = Recipe.objects.get(pk=recipeId)
-            ingredient = Ingredient.objects.get(pk=id, recipe=recipe)
+            ingredient = Ingredient.objects.get(pk=id, recipe_id=recipeId)
             ingredient.delete()
             data = ''
             re_status = status.HTTP_200_OK
-        except (Recipe.DoesNotExist, Ingredient.DoesNotExist):
+        except Ingredient.DoesNotExist:
             data = {'error': 'Resource does not exist'}
             re_status = status.HTTP_404_NOT_FOUND  
 
@@ -136,12 +213,11 @@ class RecipeView(APIView):
     def get(self, request, id=None):
         if id:
             try:
-                user = User.objects.get(pk=id)
-                recipes = Recipe.objects.filter(user=user)
+                recipes = Recipe.objects.filter(user_id=id)
                 serializer = RecipeSerializer(recipes, many=True)
                 data = serializer.data
                 re_status = status.HTTP_200_OK
-            except (User.DoesNotExist, Recipe.DoesNotExist):
+            except Recipe.DoesNotExist:
                 data = {'error': 'Resource does not exist'}
                 re_status = status.HTTP_404_NOT_FOUND
         else:
