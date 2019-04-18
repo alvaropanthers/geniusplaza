@@ -8,7 +8,6 @@ from .models import User, Recipe, Ingredient, Step
 from .serializers import RecipeSerializer
 
 class RecipeView(APIView):
-    #Creates one recipe (Change to POST or PUT(remember that put is idempotent))
     def post(self, request):
         recipeName = request.POST.get('name', None)
         username = request.POST.get('username', None)
@@ -41,7 +40,6 @@ class RecipeView(APIView):
                 user = User.objects.get(username=username)
                 recipe = Recipe.objects.get(pk=id)
 
-                #Perhaps bad
                 recipe.name = recipeName
                 recipe.save()
 
