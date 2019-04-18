@@ -31,12 +31,13 @@ class IngredientView(APIView):
 
         return Response(data, status=re_status)
 
-    def put(self, request, recipeId):
+    def put(self, request, recipeId, id):
         text = request.data['text'] if 'text' in request.data else None
 
         if text:
             try:
-                ingredient = Ingredient.objects.get(pk=recipeId)
+                recipe = Recipe.objects.get(pk=recipeId)
+                ingredient = Ingredient.objects.get(pk=id, recipe=recipe)
 
                 ingredient.text = text
                 ingredient.save()
@@ -44,7 +45,7 @@ class IngredientView(APIView):
                 serializer = IngredientSerializer(ingredient)
                 data = serializer.data
                 re_status = status.HTTP_200_OK
-            except Ingredient.DoesNotExist:
+            except (Recipe.DoesNotExist,Ingredient.DoesNotExist):
                 data = {'error': 'Resource does not exist'}
                 re_status = status.HTTP_404_NOT_FOUND
         else:
